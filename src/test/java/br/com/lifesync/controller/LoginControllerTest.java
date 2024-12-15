@@ -44,7 +44,7 @@ class LoginControllerTest {
     }
 
     @Test
-    void testLoginComSucesso() {
+    void efetuarLogin_DeveEfetuarLoginComSucesso() {
         // Arrange
         LoginDTO loginDTO = new LoginDTO("user@example.com", "password123");
         Authentication authenticationMock = mock(Authentication.class);
@@ -66,7 +66,7 @@ class LoginControllerTest {
     }
 
     @Test
-    void testTokenNaoGeradoCredenciaisInvalidas() {
+    void efetuarLogin_NaoDeveGerarTokenParaCredenciaisInvalidas() {
         // Arrange
         LoginDTO loginDTO = new LoginDTO("invalid@example.com", "wrongpassword");
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
@@ -84,7 +84,7 @@ class LoginControllerTest {
     }
 
     @Test
-    void testCadastroUsuarioComSucesso() {
+    void register_DeveCadastrarUsuarioComSucesso() {
         // Arrange
         CadastroUsuarioDTO cadastroUsuarioDTO = new CadastroUsuarioDTO("User", "user@example.com", "password123");
         when(usuarioService.loadUserByUsername("user@example.com")).thenReturn(null);
@@ -98,7 +98,7 @@ class LoginControllerTest {
     }
 
     @Test
-    void testCadastroUsuarioJaExistente() {
+    void register_NaoDeveCadastrarUsuarioJaExistente() {
         // Arrange
         CadastroUsuarioDTO cadastroUsuarioDTO = new CadastroUsuarioDTO("User", "user@example.com", "password123");
         Usuario usuarioExistente = new Usuario("User", "user@example.com", "encodedPassword", Role.USUARIO);
@@ -113,7 +113,7 @@ class LoginControllerTest {
     }
 
     @Test
-    void testCadastroUsuarioDadosForaDoPadrao() {
+    void register_NaoDeveCadastrarUsuarioComDadosInvalidos() {
         // Arrange
         CadastroUsuarioDTO cadastroUsuarioDTO = new CadastroUsuarioDTO("", "invalidemail", "short");
 
