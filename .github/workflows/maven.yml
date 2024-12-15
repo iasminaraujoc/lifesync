@@ -15,7 +15,7 @@ jobs:
 
     strategy:
       matrix:
-        os: [ubuntu-latest] # MySQL geralmente funciona melhor em ambientes Linux no CI
+        os: [ubuntu-latest, macos-latest, windows-latest] 
 
     services:
       mysql:
