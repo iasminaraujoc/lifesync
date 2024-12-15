@@ -15,23 +15,21 @@ jobs:
 
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest] # MySQL geralmente funciona melhor em ambientes Linux no CI
 
     services:
-      db:
+      mysql:
         image: mysql:8.0
-        env:
-          MYSQL_DATABASE: lifesync
-          MYSQL_ROOT_PASSWORD: root
-          MYSQL_USER: root
-          MYSQL_PASSWORD: root
         ports:
           - 3306:3306
         options: >-
-          --health-cmd "mysqladmin ping -h localhost -u root --password=root"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 3
+          --health-cmd="mysqladmin ping -h localhost -u root --password=root || exit 1"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: lifesync
 
     steps:
       - name: Baixar código
@@ -43,20 +41,28 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
-      - name: Aguardar MySQL ficar pronto
+      - name: Instalar dependências do MySQL
+        run: sudo apt-get update && sudo apt-get install -y libmysqlclient-dev
+
+      - name: Aguardar MySQL estar pronto
         run: |
-          for i in {1..30}; do
-            if mysqladmin ping -h 127.0.0.1 -u root --password=root --silent; then
+          for i in {1..10}; do
+            if mysql -h 127.0.0.1 -P 3306 -u root -proot -e "SELECT 1;" > /dev/null 2>&1; then
               echo "MySQL está pronto!";
               break;
             fi
-            echo "Aguardando MySQL ficar pronto...";
-            sleep 2;
+            echo "Aguardando o MySQL...";
+            sleep 5;
           done
 
-      - name: Configurar banco (se necessário)
-        run: |
-          mysql -h 127.0.0.1 -u root --password=root -e "CREATE DATABASE IF NOT EXISTS lifesync;"
+      - name: Configurar variáveis de ambiente
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_NAME: lifesync
+          DB_USER: root
+          DB_PASS: root
+        run: echo "Banco configurado."
 
       - name: Compilar e executar testes
         run: mvn clean verify
