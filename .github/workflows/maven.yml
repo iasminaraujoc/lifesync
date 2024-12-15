@@ -116,42 +116,27 @@ jobs:
           java-version: '21'
 
       - name: Instalar MySQL (Windows)
-        shell: pwsh
-        run: |
-          choco install mysql --params '"/port:3306 /serviceName:MySQL /password:root"' -y
-          & $env:ChocolateyInstall\bin\refreshenv.cmd
-          
-          # Iniciar o serviço MySQL
-          net start MySQL
-          
-          # Aguarda um pouco para o serviço subir
-          Start-Sleep -Seconds 15
+        run: choco install mysql --params '"/port:3306 /serviceName:MySQL /password:root"' -y
 
-          # Redefine a senha do root (caso não tenha sido aplicada)
-          "C:\Program Files\MySQL\MySQL Server 8.0\bin\mysqladmin.exe" -u root password root || echo "Senha já definida"
-
-      - name: Aguardar MySQL estar pronto (Windows)
-        shell: pwsh
-        run: |
-          $maxRetries = 10
-          for ($i=1; $i -le $maxRetries; $i++) {
-            if ("C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe" -u root -proot -e "SELECT 1;" > $null 2>&1) {
-              Write-Host "MySQL está pronto!"
-              exit 0
-            } else {
-              Write-Host "Aguardando o MySQL (Windows)..."
-              Start-Sleep -Seconds 5
-            }
-          }
-          exit 1
-
+      # - name: Aguardar MySQL estar pronto (Windows)
+      #   shell: pwsh
+      #   run: |
+      #     $maxRetries = 10
+      #     for ($i=1; $i -le $maxRetries; $i++) {
+      #       if (mysql -u root -proot -e "SELECT 1;" > $null 2>&1) {
+      #         Write-Host "MySQL está pronto!"
+      #         exit 0
+      #       } else {
+      #         Write-Host "Aguardando o MySQL (Windows)..."
+      #         Start-Sleep -Seconds 5
+      #       }
+      #     }
+      #     exit 1
+        
       - name: Criar Banco de Dados
-        shell: pwsh
-        run: |
-          & "C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe" -u root -proot -e "CREATE DATABASE IF NOT EXISTS lifesync;"
+        run: mysql -u root -proot -e "CREATE DATABASE IF NOT EXISTS lifesync;"
 
       - name: Compilar e executar testes
-        shell: pwsh
         env:
           DB_HOST: 127.0.0.1
           DB_PORT: 3306
