@@ -36,8 +36,8 @@ jobs:
         run: |
           brew install mysql
           brew services start mysql
-          mysqladmin -u root password "root"
-          mysql -u root -proot -e "CREATE DATABASE lifesync;"
+          mysqladmin --socket=/tmp/mysql.sock -u root password "root"
+          mysql --socket=/tmp/mysql.sock -u root -proot -e "CREATE DATABASE lifesync;"
 
       - name: Configurar PATH para MySQL no macOS
         if: runner.os == 'macOS'
@@ -46,7 +46,7 @@ jobs:
       - name: Aguardar MySQL estar pronto
         run: |
           for i in {1..10}; do
-            if mysql -h 127.0.0.1 -P 3306 -u root -proot -e "SELECT 1;" > /dev/null 2>&1; then
+            if mysql --socket=/tmp/mysql.sock -u root -proot -e "SELECT 1;" > /dev/null 2>&1; then
               echo "MySQL está pronto!";
               break;
             fi
