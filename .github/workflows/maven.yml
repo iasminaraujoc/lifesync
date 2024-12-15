@@ -118,9 +118,6 @@ jobs:
       - name: Instalar MySQL (Windows)
         run: choco install mysql --params '"/port:3306 /serviceName:MySQL /password:root"' -y
 
-      - name: Iniciar serviço MySQL (Windows)
-        run: net start MySQL
-
       - name: Aguardar MySQL estar pronto (Windows)
         shell: cmd
         run: |
