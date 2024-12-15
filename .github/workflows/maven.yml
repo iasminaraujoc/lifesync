@@ -15,21 +15,7 @@ jobs:
 
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest] # Adicionando suporte ao macOS
-
-    services:
-      mysql:
-        image: mysql:8.0
-        ports:
-          - 3306:3306
-        options: >-
-          --health-cmd="mysqladmin ping -h localhost -u root --password=root || exit 1"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=3
-        env:
-          MYSQL_ROOT_PASSWORD: root
-          MYSQL_DATABASE: lifesync
+        os: [ubuntu-latest, macos-latest]
 
     steps:
       - name: Baixar código
@@ -45,13 +31,17 @@ jobs:
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y libmysqlclient-dev
 
-      - name: Instalar dependências do MySQL no macOS
+      - name: Instalar MySQL no macOS
         if: runner.os == 'macOS'
-        run: brew install mysql-client
+        run: |
+          brew install mysql
+          brew services start mysql
+          mysqladmin -u root password "root"
+          mysql -u root -proot -e "CREATE DATABASE lifesync;"
 
       - name: Configurar PATH para MySQL no macOS
         if: runner.os == 'macOS'
-        run: echo 'export PATH="/usr/local/opt/mysql-client/bin:$PATH"' >> $GITHUB_ENV
+        run: echo 'export PATH="/usr/local/opt/mysql/bin:$PATH"' >> $GITHUB_ENV
 
       - name: Aguardar MySQL estar pronto
         run: |
