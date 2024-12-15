@@ -8,21 +8,20 @@ on:
 
 jobs:
   test-linux:
-    name: Testes no Linux
     runs-on: ubuntu-latest
     services:
       mysql:
         image: mysql:8.0
-        ports:
-          - 3306:3306
-        options: >-
-          --health-cmd="mysqladmin ping -h localhost -u root --password=root || exit 1"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=3
         env:
           MYSQL_ROOT_PASSWORD: root
           MYSQL_DATABASE: lifesync
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -u root -proot || exit 1"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
 
     steps:
       - name: Baixar código
@@ -34,39 +33,32 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
-      - name: Instalar dependências do MySQL no Linux
+      - name: Instalar dependências do MySQL
         run: sudo apt-get update && sudo apt-get install -y libmysqlclient-dev
 
-      - name: Aguardar MySQL estar pronto (Linux)
+      - name: Aguardar MySQL estar pronto
         run: |
           for i in {1..10}; do
             if mysql -h 127.0.0.1 -P 3306 -u root -proot -e "SELECT 1;" > /dev/null 2>&1; then
               echo "MySQL está pronto!";
               break;
             fi
-            echo "Aguardando o MySQL (Linux)...";
+            echo "Aguardando o MySQL...";
             sleep 5;
           done
 
-      - name: Configurar variáveis de ambiente
-        run: echo "Banco configurado."
+      - name: Compilar e executar testes
         env:
           DB_HOST: 127.0.0.1
           DB_PORT: 3306
           DB_NAME: lifesync
           DB_USER: root
           DB_PASS: root
-
-      - name: Compilar e executar testes
         run: mvn clean verify
 
-  test-others:
-    name: Testes no macOS e Windows
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [macos-latest, windows-latest]
 
+  test-macos:
+    runs-on: macos-latest
     steps:
       - name: Baixar código
         uses: actions/checkout@v4
@@ -77,26 +69,75 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
-      - name: Iniciar MySQL via Docker
+      - name: Instalar e iniciar MySQL (macOS)
         run: |
-          docker run -d --name mysql -p 3306:3306 -e MYSQL_ROOT_PASSWORD=root -e MYSQL_DATABASE=lifesync mysql:8.0
+          brew update
+          brew install mysql
+          brew services start mysql
+          # Espera alguns segundos para o servidor iniciar
+          sleep 10
+          # Define a senha do root
+          mysqladmin -u root password 'root'
+
+      - name: Aguardar MySQL estar pronto (macOS)
+        run: |
           for i in {1..10}; do
-            if docker exec mysql mysql -u root -proot -e "SELECT 1;" > /dev/null 2>&1; then
+            if mysql -u root -proot -e "SELECT 1;" > /dev/null 2>&1; then
               echo "MySQL está pronto!";
               break;
             fi
-            echo "Aguardando o MySQL (macOS/Windows)...";
+            echo "Aguardando o MySQL (macOS)...";
             sleep 5;
           done
 
-      - name: Configurar variáveis de ambiente
-        run: echo "Banco configurado."
+      - name: Criar Banco de Dados
+        run: mysql -u root -proot -e "CREATE DATABASE IF NOT EXISTS lifesync;"
+
+      - name: Compilar e executar testes
         env:
           DB_HOST: 127.0.0.1
           DB_PORT: 3306
           DB_NAME: lifesync
           DB_USER: root
           DB_PASS: root
+        run: mvn clean verify
+
+
+  test-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@v4
+
+      - name: Configurar JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Instalar MySQL (Windows)
+        run: choco install mysql --params '"/port:3306 /serviceName:MySQL /password:root"' -y
+
+      - name: Iniciar serviço MySQL (Windows)
+        run: net start MySQL
+
+      - name: Aguardar MySQL estar pronto (Windows)
+        shell: cmd
+        run: |
+          for /l %i in (1,1,10) do (
+            mysql -u root -proot -e "SELECT 1;" >nul 2>&1 && (echo MySQL está pronto! & exit /b 0)
+            echo Aguardando o MySQL (Windows)...
+            powershell -Command "Start-Sleep -Seconds 5"
+          )
+
+      - name: Criar Banco de Dados
+        run: mysql -u root -proot -e "CREATE DATABASE IF NOT EXISTS lifesync;"
 
       - name: Compilar e executar testes
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_NAME: lifesync
+          DB_USER: root
+          DB_PASS: root
         run: mvn clean verify
