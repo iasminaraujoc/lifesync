@@ -2,26 +2,16 @@ name: CI/CD para Java
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   pull_request:
-    branches:
-      - main
+    branches: [main]
 
 jobs:
-  test:
-    name: Testar em ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-
-    # Somente o Linux terá acesso ao bloco services
+  test-linux:
+    name: Testes no Linux
+    runs-on: ubuntu-latest
     services:
       mysql:
-        if: runner.os == 'Linux'
         image: mysql:8.0
         ports:
           - 3306:3306
@@ -44,29 +34,10 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
-      # Instalar dependências para MySQL no Linux
-      - name: Instalar dependências do MySQL (Linux)
-        if: runner.os == 'Linux'
+      - name: Instalar dependências do MySQL no Linux
         run: sudo apt-get update && sudo apt-get install -y libmysqlclient-dev
 
-      # Iniciar MySQL manualmente via Docker no macOS e Windows
-      - name: Iniciar MySQL (macOS/Windows)
-        if: runner.os != 'Linux'
-        run: |
-          docker run -d --name mysql -p 3306:3306 -e MYSQL_ROOT_PASSWORD=root -e MYSQL_DATABASE=lifesync mysql:8.0
-          # Espera um pouco para o MySQL subir
-          for i in {1..10}; do
-            if docker exec mysql mysql -u root -proot -e "SELECT 1;" > /dev/null 2>&1; then
-              echo "MySQL está pronto!";
-              break;
-            fi
-            echo "Aguardando o MySQL (macOS/Windows)...";
-            sleep 5;
-          done
-
-      # Aguardar MySQL no Linux (usando serviço)
       - name: Aguardar MySQL estar pronto (Linux)
-        if: runner.os == 'Linux'
         run: |
           for i in {1..10}; do
             if mysql -h 127.0.0.1 -P 3306 -u root -proot -e "SELECT 1;" > /dev/null 2>&1; then
@@ -74,6 +45,47 @@ jobs:
               break;
             fi
             echo "Aguardando o MySQL (Linux)...";
+            sleep 5;
+          done
+
+      - name: Configurar variáveis de ambiente
+        run: echo "Banco configurado."
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_NAME: lifesync
+          DB_USER: root
+          DB_PASS: root
+
+      - name: Compilar e executar testes
+        run: mvn clean verify
+
+  test-others:
+    name: Testes no macOS e Windows
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-latest, windows-latest]
+
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@v4
+
+      - name: Configurar JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Iniciar MySQL via Docker
+        run: |
+          docker run -d --name mysql -p 3306:3306 -e MYSQL_ROOT_PASSWORD=root -e MYSQL_DATABASE=lifesync mysql:8.0
+          for i in {1..10}; do
+            if docker exec mysql mysql -u root -proot -e "SELECT 1;" > /dev/null 2>&1; then
+              echo "MySQL está pronto!";
+              break;
+            fi
+            echo "Aguardando o MySQL (macOS/Windows)...";
             sleep 5;
           done
 
