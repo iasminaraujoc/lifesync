@@ -121,7 +121,7 @@ jobs:
       - name: Aguardar MySQL estar pronto (Windows)
         shell: cmd
         run: |
-          for /l %i in (1,1,10) do (
+          for /l %%i in (1,1,10) do (
             mysql -u root -proot -e "SELECT 1;" >nul 2>&1 && (echo MySQL está pronto! & exit /b 0)
             echo Aguardando o MySQL (Windows)...
             powershell -Command "Start-Sleep -Seconds 5"
