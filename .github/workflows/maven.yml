@@ -15,7 +15,21 @@ jobs:
 
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest] # Testar em múltiplos SOs
+        os: [ubuntu-latest, windows-latest, macos-latest] # Adicionando suporte para Windows e macOS
+
+    services:
+      mysql:
+        image: mysql:8.0
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -u root --password=root || exit 1"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: lifesync
 
     steps:
       - name: Baixar código
@@ -27,22 +41,19 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
-      - name: Configurar MySQL
+      - name: Instalar dependências do MySQL (Linux)
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y libmysqlclient-dev
 
-      - name: Configurar MySQL no macOS
-        if: runner.os == 'macOS'
-        run: |
-          brew update
-          brew install mysql
-          brew services start mysql
-
-      - name: Configurar MySQL no Windows
+      - name: Instalar dependências do MySQL (Windows)
         if: runner.os == 'Windows'
         run: |
           choco install mysql --version=8.0 -y
-          Start-Service mysql
+          echo "MySQL instalado no Windows."
+
+      - name: Instalar dependências do MySQL (macOS)
+        if: runner.os == 'macOS'
+        run: brew install mysql@8.0
 
       - name: Aguardar MySQL estar pronto
         run: |
@@ -53,16 +64,16 @@ jobs:
             fi
             echo "Aguardando o MySQL...";
             sleep 5;
-          done          
+          done
 
       - name: Configurar variáveis de ambiente
         env:
-          DB_HOST: localhost
+          DB_HOST: 127.0.0.1
           DB_PORT: 3306
           DB_NAME: lifesync
           DB_USER: root
           DB_PASS: root
-        run: echo "Configuração concluída."
+        run: echo "Banco configurado."
 
       - name: Compilar e executar testes
         run: mvn clean verify
