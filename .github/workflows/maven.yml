@@ -3,19 +3,35 @@ name: CI/CD para Java
 on:
   push:
     branches:
-      - main 
+      - main
   pull_request:
     branches:
-      - main 
+      - main
 
 jobs:
   test:
     name: Executar Testes em ${{ matrix.os }}
-    runs-on: ${{ matrix.os }} 
+    runs-on: ${{ matrix.os }}
 
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest] # Testar nos 3 sistemas operacionais
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    services:
+      db:
+        image: mysql:8.0
+        env:
+          MYSQL_DATABASE: lifesync
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_USER: root
+          MYSQL_PASSWORD: root
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "mysqladmin ping -h localhost -u root --password=root"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 3
 
     steps:
       - name: Baixar código
@@ -24,8 +40,23 @@ jobs:
       - name: Configurar JDK
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin' 
+          distribution: 'temurin'
           java-version: '21'
 
+      - name: Aguardar MySQL ficar pronto
+        run: |
+          for i in {1..30}; do
+            if mysqladmin ping -h 127.0.0.1 -u root --password=root --silent; then
+              echo "MySQL está pronto!";
+              break;
+            fi
+            echo "Aguardando MySQL ficar pronto...";
+            sleep 2;
+          done
+
+      - name: Configurar banco (se necessário)
+        run: |
+          mysql -h 127.0.0.1 -u root --password=root -e "CREATE DATABASE IF NOT EXISTS lifesync;"
+
       - name: Compilar e executar testes
-        run: mvn clean verify # Comando Maven para compilar e executar os testes
+        run: mvn clean verify
