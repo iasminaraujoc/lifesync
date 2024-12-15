@@ -10,12 +10,29 @@ on:
 
 jobs:
   test:
-    name: Executar Testes em ${{ matrix.os }}
+    name: Testar em ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
 
     strategy:
+      fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    # Somente o Linux terá acesso ao bloco services
+    services:
+      mysql:
+        if: runner.os == 'Linux'
+        image: mysql:8.0
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -u root --password=root || exit 1"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: lifesync
 
     steps:
       - name: Baixar código
@@ -27,41 +44,47 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
-      - name: Instalar dependências do MySQL no Ubuntu
+      # Instalar dependências para MySQL no Linux
+      - name: Instalar dependências do MySQL (Linux)
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y libmysqlclient-dev
 
-      - name: Instalar MySQL no macOS
-        if: runner.os == 'macOS'
+      # Iniciar MySQL manualmente via Docker no macOS e Windows
+      - name: Iniciar MySQL (macOS/Windows)
+        if: runner.os != 'Linux'
         run: |
-          brew install mysql
-          brew services start mysql
-          mysqladmin --socket=/tmp/mysql.sock -u root password "root"
-          mysql --socket=/tmp/mysql.sock -u root -proot -e "CREATE DATABASE lifesync;"
-
-      - name: Configurar PATH para MySQL no macOS
-        if: runner.os == 'macOS'
-        run: echo 'export PATH="/usr/local/opt/mysql/bin:$PATH"' >> $GITHUB_ENV
-
-      - name: Aguardar MySQL estar pronto
-        run: |
+          docker run -d --name mysql -p 3306:3306 -e MYSQL_ROOT_PASSWORD=root -e MYSQL_DATABASE=lifesync mysql:8.0
+          # Espera um pouco para o MySQL subir
           for i in {1..10}; do
-            if mysql --socket=/tmp/mysql.sock -u root -proot -e "SELECT 1;" > /dev/null 2>&1; then
+            if docker exec mysql mysql -u root -proot -e "SELECT 1;" > /dev/null 2>&1; then
               echo "MySQL está pronto!";
               break;
             fi
-            echo "Aguardando o MySQL...";
+            echo "Aguardando o MySQL (macOS/Windows)...";
+            sleep 5;
+          done
+
+      # Aguardar MySQL no Linux (usando serviço)
+      - name: Aguardar MySQL estar pronto (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          for i in {1..10}; do
+            if mysql -h 127.0.0.1 -P 3306 -u root -proot -e "SELECT 1;" > /dev/null 2>&1; then
+              echo "MySQL está pronto!";
+              break;
+            fi
+            echo "Aguardando o MySQL (Linux)...";
             sleep 5;
           done
 
       - name: Configurar variáveis de ambiente
+        run: echo "Banco configurado."
         env:
           DB_HOST: 127.0.0.1
           DB_PORT: 3306
           DB_NAME: lifesync
           DB_USER: root
           DB_PASS: root
-        run: echo "Banco configurado."
 
       - name: Compilar e executar testes
         run: mvn clean verify
