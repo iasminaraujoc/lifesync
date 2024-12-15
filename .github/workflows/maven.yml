@@ -134,7 +134,7 @@ jobs:
       #     exit 1
         
       - name: Criar Banco de Dados
-        run: mysql -u root -proot -e "CREATE DATABASE IF NOT EXISTS lifesync;"
+        run: mysql -u root -e "CREATE DATABASE IF NOT EXISTS lifesync;"
 
       - name: Compilar e executar testes
         env:
