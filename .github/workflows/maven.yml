@@ -119,7 +119,7 @@ jobs:
         run: choco install mysql --params '"/port:3306 /serviceName:MySQL /password:root"' -y
 
       - name: Aguardar MySQL estar pronto (Windows)
-        shell: cmd
+        shell: pwsh
         run: |
           for /l %%i in (1,1,10) do (
             mysql -u root -proot -e "SELECT 1;" >nul 2>&1 && (echo MySQL está pronto! & exit /b 0)
