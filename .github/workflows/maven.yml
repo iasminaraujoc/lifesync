@@ -1,0 +1,31 @@
+name: CI/CD para Java
+
+on:
+  push:
+    branches:
+      - main 
+  pull_request:
+    branches:
+      - main 
+
+jobs:
+  test:
+    name: Executar Testes em ${{ matrix.os }}
+    runs-on: ${{ matrix.os }} 
+
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest] # Testar nos 3 sistemas operacionais
+
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@v4
+
+      - name: Configurar JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin' 
+          java-version: '21'
+
+      - name: Compilar e executar testes
+        run: mvn clean verify # Comando Maven para compilar e executar os testes
