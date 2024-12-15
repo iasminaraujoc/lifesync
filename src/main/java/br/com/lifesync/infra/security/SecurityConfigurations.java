@@ -27,18 +27,6 @@ public class SecurityConfigurations {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(req -> {
-                    req.requestMatchers(HttpMethod.POST, "/tarefas").hasRole("USUARIO");
-                    req.requestMatchers(HttpMethod.GET, "/tarefas").hasRole("USUARIO");
-                    req.requestMatchers(HttpMethod.PUT, "/tarefas/{id}").hasRole("USUARIO");
-                    req.requestMatchers(HttpMethod.PATCH, "/tarefas/{id}").hasRole("USUARIO");
-                    req.requestMatchers(HttpMethod.DELETE, "/tarefas/{id}").hasRole("USUARIO");
-                    req.requestMatchers(HttpMethod.PATCH, "/tarefas/{id}/concluir").hasRole("USUARIO");
-                    req.requestMatchers(HttpMethod.POST, "/eventos").hasRole("USUARIO");
-                    req.requestMatchers(HttpMethod.GET, "/eventos").hasRole("USUARIO");
-                    req.requestMatchers(HttpMethod.PUT, "/eventos/{id}").hasRole("USUARIO");
-                    req.requestMatchers(HttpMethod.PATCH, "/eventos/{id}").hasRole("USUARIO");
-                    req.requestMatchers(HttpMethod.DELETE, "/eventos/{id}").hasRole("USUARIO");
-                    req.requestMatchers(HttpMethod.GET, "/compromissos").hasRole("USUARIO");
                     req.requestMatchers("/login", "/login/**").permitAll();
                     req.requestMatchers("/signin", "/signin/**").permitAll();
                     req.anyRequest().authenticated();
