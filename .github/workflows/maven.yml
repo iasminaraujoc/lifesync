@@ -121,20 +121,20 @@ jobs:
       - name: Definir senha root manualmente (Windows)
         run: mysqladmin -u root password root
 
-      # - name: Aguardar MySQL estar pronto (Windows)
-      #   shell: pwsh
-      #   run: |
-      #     $maxRetries = 10
-      #     for ($i=1; $i -le $maxRetries; $i++) {
-      #       if (mysql -u root -e "SELECT 1;" > $null 2>&1) {
-      #         Write-Host "MySQL está pronto!"
-      #         exit 0
-      #       } else {
-      #         Write-Host "Aguardando o MySQL (Windows)..."
-      #         Start-Sleep -Seconds 5
-      #       }
-      #     }
-      #     exit 1
+      - name: Aguardar MySQL estar pronto (Windows)
+        shell: pwsh
+        run: |
+          $maxRetries = 10
+          for ($i=1; $i -le $maxRetries; $i++) {
+            if (mysql -u root -proot -e "SELECT 1;" > $null 2>&1) {
+              Write-Host "MySQL está pronto!"
+              exit 0
+            } else {
+              Write-Host "Aguardando o MySQL (Windows)..."
+              Start-Sleep -Seconds 5
+            }
+          }
+          exit 1
 
       - name: Criar Banco de Dados
         run: mysql -u root -proot -e "CREATE DATABASE IF NOT EXISTS lifesync;"
