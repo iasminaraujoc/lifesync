@@ -27,27 +27,32 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
-      - name: Configurar MySQL para ${matrix.os}
+      # Configuração específica para cada sistema operacional
+      - name: Configurar MySQL no Ubuntu
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
           sudo apt-get install -y mysql-server
           sudo service mysql start
-          mysql -u root -e "CREATE DATABASE lifesync;"
+          sudo mysql -u root -e "ALTER USER 'root'@'localhost' IDENTIFIED BY 'root'; FLUSH PRIVILEGES;"
+          mysql -u root -proot -e "CREATE DATABASE lifesync;"
 
       - name: Configurar MySQL no MacOS
         if: matrix.os == 'macos-latest'
         run: |
           brew install mysql
           brew services start mysql
-          mysql -u root -e "CREATE DATABASE lifesync;"
+          mysql -u root -e "ALTER USER 'root'@'localhost' IDENTIFIED BY 'root'; FLUSH PRIVILEGES;"
+          mysql -u root -proot -e "CREATE DATABASE lifesync;"
 
       - name: Configurar MySQL no Windows
         if: matrix.os == 'windows-latest'
         run: |
           choco install mysql
-          mysql -u root -e "CREATE DATABASE lifesync;"
+          mysql -u root -e "ALTER USER 'root'@'localhost' IDENTIFIED BY 'root'; FLUSH PRIVILEGES;"
+          mysql -u root -proot -e "CREATE DATABASE lifesync;"
 
+      # Instalar dependências extras para Linux/MacOS
       - name: Instalar dependências do MySQL (Ubuntu e MacOS)
         if: matrix.os != 'windows-latest'
         run: |
@@ -56,7 +61,7 @@ jobs:
       - name: Aguardar MySQL estar pronto
         run: |
           for i in {1..10}; do
-            if mysql -u root -e "SELECT 1;" > /dev/null 2>&1; then
+            if mysql -u root -proot -e "SELECT 1;" > /dev/null 2>&1; then
               echo "MySQL está pronto!";
               break;
             fi
