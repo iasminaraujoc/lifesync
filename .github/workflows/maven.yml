@@ -29,12 +29,7 @@ jobs:
 
       - name: Configurar MySQL
         if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y mysql-server
-          sudo service mysql start
-          mysql -u root -e "CREATE DATABASE lifesync;"
-          mysql -u root -e "ALTER USER 'root'@'localhost' IDENTIFIED BY 'root';"
+        run: sudo apt-get update && sudo apt-get install -y libmysqlclient-dev
 
       - name: Configurar MySQL no macOS
         if: runner.os == 'macOS'
@@ -42,16 +37,23 @@ jobs:
           brew update
           brew install mysql
           brew services start mysql
-          mysql -u root -e "CREATE DATABASE lifesync;"
-          mysql -u root -e "ALTER USER 'root'@'localhost' IDENTIFIED BY 'root';"
 
       - name: Configurar MySQL no Windows
         if: runner.os == 'Windows'
         run: |
           choco install mysql --version=8.0 -y
           Start-Service mysql
-          mysql -u root -e "CREATE DATABASE lifesync;"
-          mysql -u root -e "ALTER USER 'root'@'localhost' IDENTIFIED BY 'root';"
+
+      - name: Aguardar MySQL estar pronto
+        run: |
+          for i in {1..10}; do
+            if mysql -h 127.0.0.1 -P 3306 -u root -proot -e "SELECT 1;" > /dev/null 2>&1; then
+              echo "MySQL está pronto!";
+              break;
+            fi
+            echo "Aguardando o MySQL...";
+            sleep 5;
+          done          
 
       - name: Configurar variáveis de ambiente
         env:
