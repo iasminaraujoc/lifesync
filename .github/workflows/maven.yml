@@ -15,7 +15,7 @@ jobs:
 
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest] # Testar em múltiplos SOs
 
     steps:
       - name: Baixar código
@@ -27,47 +27,31 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
-      # Configuração específica para cada sistema operacional
-      - name: Configurar MySQL no Ubuntu
-        if: matrix.os == 'ubuntu-latest'
+      - name: Configurar MySQL
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y mysql-server
           sudo service mysql start
-          sudo mysql -u root -e "ALTER USER 'root'@'localhost' IDENTIFIED BY 'root'; FLUSH PRIVILEGES;"
-          mysql -u root -proot -e "CREATE DATABASE lifesync;"
+          mysql -u root -e "CREATE DATABASE lifesync;"
+          mysql -u root -e "ALTER USER 'root'@'localhost' IDENTIFIED BY 'root';"
 
-      - name: Configurar MySQL no MacOS
-        if: matrix.os == 'macos-latest'
+      - name: Configurar MySQL no macOS
+        if: runner.os == 'macOS'
         run: |
+          brew update
           brew install mysql
           brew services start mysql
-          mysql -u root -e "ALTER USER 'root'@'localhost' IDENTIFIED BY 'root'; FLUSH PRIVILEGES;"
-          mysql -u root -proot -e "CREATE DATABASE lifesync;"
+          mysql -u root -e "CREATE DATABASE lifesync;"
+          mysql -u root -e "ALTER USER 'root'@'localhost' IDENTIFIED BY 'root';"
 
       - name: Configurar MySQL no Windows
-        if: matrix.os == 'windows-latest'
+        if: runner.os == 'Windows'
         run: |
-          choco install mysql
-          mysql -u root -e "ALTER USER 'root'@'localhost' IDENTIFIED BY 'root'; FLUSH PRIVILEGES;"
-          mysql -u root -proot -e "CREATE DATABASE lifesync;"
-
-      # Instalar dependências extras para Linux/MacOS
-      - name: Instalar dependências do MySQL (Ubuntu e MacOS)
-        if: matrix.os != 'windows-latest'
-        run: |
-          sudo apt-get install -y libmysqlclient-dev || echo "No dependencies required for MacOS"
-
-      - name: Aguardar MySQL estar pronto
-        run: |
-          for i in {1..10}; do
-            if mysql -u root -proot -e "SELECT 1;" > /dev/null 2>&1; then
-              echo "MySQL está pronto!";
-              break;
-            fi
-            echo "Aguardando o MySQL...";
-            sleep 5;
-          done
+          choco install mysql --version=8.0 -y
+          Start-Service mysql
+          mysql -u root -e "CREATE DATABASE lifesync;"
+          mysql -u root -e "ALTER USER 'root'@'localhost' IDENTIFIED BY 'root';"
 
       - name: Configurar variáveis de ambiente
         env:
@@ -76,7 +60,7 @@ jobs:
           DB_NAME: lifesync
           DB_USER: root
           DB_PASS: root
-        run: echo "Banco configurado."
+        run: echo "Configuração concluída."
 
       - name: Compilar e executar testes
         run: mvn clean verify
