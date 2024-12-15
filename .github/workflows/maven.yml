@@ -15,7 +15,7 @@ jobs:
 
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest] # Adicionando suporte para Windows e macOS
+        os: [ubuntu-latest, macos-latest] # Adicionando suporte ao macOS
 
     services:
       mysql:
@@ -41,19 +41,17 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
-      - name: Instalar dependências do MySQL (Linux)
+      - name: Instalar dependências do MySQL no Ubuntu
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y libmysqlclient-dev
 
-      - name: Instalar dependências do MySQL (Windows)
-        if: runner.os == 'Windows'
-        run: |
-          choco install mysql --version=8.0 -y
-          echo "MySQL instalado no Windows."
-
-      - name: Instalar dependências do MySQL (macOS)
+      - name: Instalar dependências do MySQL no macOS
         if: runner.os == 'macOS'
-        run: brew install mysql@8.0
+        run: brew install mysql-client
+
+      - name: Configurar PATH para MySQL no macOS
+        if: runner.os == 'macOS'
+        run: echo 'export PATH="/usr/local/opt/mysql-client/bin:$PATH"' >> $GITHUB_ENV
 
       - name: Aguardar MySQL estar pronto
         run: |
