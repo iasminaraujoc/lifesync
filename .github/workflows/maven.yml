@@ -117,13 +117,16 @@ jobs:
 
       - name: Instalar MySQL (Windows)
         run: choco install mysql --params '"/port:3306 /serviceName:MySQL /password:root"' -y
+        
+      - name: Definir senha root manualmente (Windows)
+        run: mysqladmin -u root password root
 
       # - name: Aguardar MySQL estar pronto (Windows)
       #   shell: pwsh
       #   run: |
       #     $maxRetries = 10
       #     for ($i=1; $i -le $maxRetries; $i++) {
-      #       if (mysql -u root -proot -e "SELECT 1;" > $null 2>&1) {
+      #       if (mysql -u root -e "SELECT 1;" > $null 2>&1) {
       #         Write-Host "MySQL está pronto!"
       #         exit 0
       #       } else {
@@ -132,9 +135,9 @@ jobs:
       #       }
       #     }
       #     exit 1
-        
+
       - name: Criar Banco de Dados
-        run: mysql -u root -e "CREATE DATABASE IF NOT EXISTS lifesync;"
+        run: mysql -u root -proot -e "CREATE DATABASE IF NOT EXISTS lifesync;"
 
       - name: Compilar e executar testes
         env:
