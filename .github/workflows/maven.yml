@@ -1,4 +1,4 @@
-name: CI/CD para Java
+name: CI/CD para Java com Testcontainers
 
 on:
   push:
@@ -9,20 +9,6 @@ on:
 jobs:
   test-linux:
     runs-on: ubuntu-latest
-    services:
-      mysql:
-        image: mysql:8.0
-        env:
-          MYSQL_ROOT_PASSWORD: root
-          MYSQL_DATABASE: lifesync
-        ports:
-          - 3306:3306
-        options: >-
-          --health-cmd="mysqladmin ping -h localhost -u root -proot || exit 1"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=3
-
     steps:
       - name: Baixar código
         uses: actions/checkout@v4
@@ -33,29 +19,18 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
-      - name: Instalar dependências do MySQL
-        run: sudo apt-get update && sudo apt-get install -y libmysqlclient-dev
-
-      - name: Aguardar MySQL estar pronto
+      - name: Configurar Docker para Testcontainers
         run: |
-          for i in {1..10}; do
-            if mysql -h 127.0.0.1 -P 3306 -u root -proot -e "SELECT 1;" > /dev/null 2>&1; then
-              echo "MySQL está pronto!";
-              break;
-            fi
-            echo "Aguardando o MySQL...";
-            sleep 5;
-          done
+          echo "Configurando Docker para permitir acesso do Testcontainers"
+          docker --version
+          sudo chmod 666 /var/run/docker.sock
+
+      - name: Configurar reuso de containers
+        run: |
+          echo "testcontainers.reuse.enable=true" > ~/.testcontainers.properties
 
       - name: Compilar e executar testes
-        env:
-          DB_HOST: 127.0.0.1
-          DB_PORT: 3306
-          DB_NAME: lifesync
-          DB_USER: root
-          DB_PASS: root
         run: mvn clean verify
-
 
   test-macos:
     runs-on: macos-latest
@@ -69,39 +44,18 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
-      - name: Instalar e iniciar MySQL (macOS)
+      - name: Configurar Docker para Testcontainers
         run: |
-          brew update
-          brew install mysql
-          brew services start mysql
-          # Espera alguns segundos para o servidor iniciar
-          sleep 10
-          # Define a senha do root
-          mysqladmin -u root password 'root'
+          echo "Configurando Docker para permitir acesso do Testcontainers"
+          docker --version
+          sudo chmod 666 /var/run/docker.sock
 
-      - name: Aguardar MySQL estar pronto (macOS)
+      - name: Configurar reuso de containers
         run: |
-          for i in {1..10}; do
-            if mysql -u root -proot -e "SELECT 1;" > /dev/null 2>&1; then
-              echo "MySQL está pronto!";
-              break;
-            fi
-            echo "Aguardando o MySQL (macOS)...";
-            sleep 5;
-          done
-
-      - name: Criar Banco de Dados
-        run: mysql -u root -proot -e "CREATE DATABASE IF NOT EXISTS lifesync;"
+          echo "testcontainers.reuse.enable=true" > ~/.testcontainers.properties
 
       - name: Compilar e executar testes
-        env:
-          DB_HOST: 127.0.0.1
-          DB_PORT: 3306
-          DB_NAME: lifesync
-          DB_USER: root
-          DB_PASS: root
         run: mvn clean verify
-
 
   test-windows:
     runs-on: windows-latest
@@ -115,20 +69,15 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
-      - name: Instalar MySQL (Windows)
-        run: choco install mysql --params '"/port:3306 /serviceName:MySQL /password:root"' -y
-        
-      - name: Definir senha root manualmente (Windows)
-        run: mysqladmin -u root password root
+      - name: Instalar Docker no Windows
+        run: |
+          choco install docker-desktop -y
+          Start-Service Docker
+          docker --version
 
-      - name: Criar Banco de Dados
-        run: mysql -u root -proot -e "CREATE DATABASE IF NOT EXISTS lifesync;"
+      - name: Configurar reuso de containers
+        run: |
+          echo "testcontainers.reuse.enable=true" > $env:USERPROFILE/.testcontainers.properties
 
       - name: Compilar e executar testes
-        env:
-          DB_HOST: 127.0.0.1
-          DB_PORT: 3306
-          DB_NAME: lifesync
-          DB_USER: root
-          DB_PASS: root
         run: mvn clean verify

@@ -1,6 +1,5 @@
 package br.com.lifesync.domain.tarefa;
 
-import br.com.lifesync.domain.usuario.Usuario;
 import br.com.lifesync.domain.usuario.UsuarioService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

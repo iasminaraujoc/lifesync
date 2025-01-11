@@ -86,4 +86,8 @@ public class Usuario implements UserDetails {
         return true;
     }
 
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
 }

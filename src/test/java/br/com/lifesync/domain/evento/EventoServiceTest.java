@@ -1,11 +1,5 @@
-package br.com.lifesync.domain.compromisso;
+package br.com.lifesync.domain.evento;
 
-import br.com.lifesync.domain.evento.Evento;
-import br.com.lifesync.domain.evento.EventoRepository;
-import br.com.lifesync.domain.evento.EventoService;
-import br.com.lifesync.domain.evento.CadastroEventoDTO;
-import br.com.lifesync.domain.evento.EdicaoEventoDTO;
-import br.com.lifesync.domain.usuario.Usuario;
 import br.com.lifesync.domain.usuario.UsuarioService;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -32,7 +26,6 @@ class EventoServiceTest {
     
     private CadastroEventoDTO cadastroEventoDTO;
     private EdicaoEventoDTO edicaoEventoDTO;
-    private Usuario usuarioLogado;
 
     @BeforeEach
     void setUp() {
