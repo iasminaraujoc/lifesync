@@ -40,14 +40,14 @@ jobs:
         run: |
           for i in {1..10}; do
             if mysql -h 127.0.0.1 -P 3306 -u root -proot -e "SELECT 1;" > /dev/null 2>&1; then
-              echo "MySQL está pronto!";
+              echo "MySQL está pronto (Ubuntu)!";
               break;
             fi
-            echo "Aguardando o MySQL...";
+            echo "Aguardando o MySQL (Ubuntu)...";
             sleep 5;
           done
 
-      - name: Compilar e executar testes
+      - name: Compilar e executar testes (unit + integração)
         env:
           DB_HOST: 127.0.0.1
           DB_PORT: 3306
@@ -55,7 +55,6 @@ jobs:
           DB_USER: root
           DB_PASS: root
         run: mvn clean verify
-
 
   test-macos:
     runs-on: macos-latest
@@ -83,25 +82,24 @@ jobs:
         run: |
           for i in {1..10}; do
             if mysql -u root -proot -e "SELECT 1;" > /dev/null 2>&1; then
-              echo "MySQL está pronto!";
+              echo "MySQL está pronto (macOS)!";
               break;
             fi
             echo "Aguardando o MySQL (macOS)...";
             sleep 5;
           done
 
-      - name: Criar Banco de Dados
+      - name: Criar Banco de Dados (macOS)
         run: mysql -u root -proot -e "CREATE DATABASE IF NOT EXISTS lifesync;"
 
-      - name: Compilar e executar testes
+      - name: Compilar e executar testes (sem integração)
         env:
           DB_HOST: 127.0.0.1
           DB_PORT: 3306
           DB_NAME: lifesync
           DB_USER: root
           DB_PASS: root
-        run: mvn clean verify
-
+        run: mvn clean verify -DskipITs=true
 
   test-windows:
     runs-on: windows-latest
@@ -121,14 +119,14 @@ jobs:
       - name: Definir senha root manualmente (Windows)
         run: mysqladmin -u root password root
 
-      - name: Criar Banco de Dados
+      - name: Criar Banco de Dados (Windows)
         run: mysql -u root -proot -e "CREATE DATABASE IF NOT EXISTS lifesync;"
 
-      - name: Compilar e executar testes
+      - name: Compilar e executar testes (sem integração)
         env:
           DB_HOST: 127.0.0.1
           DB_PORT: 3306
           DB_NAME: lifesync
           DB_USER: root
           DB_PASS: root
-        run: mvn clean verify
+        run: mvn clean verify -DskipITs=true
