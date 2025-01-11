@@ -34,7 +34,7 @@ import jakarta.transaction.Transactional;
 @SpringBootTest
 @Testcontainers
 @Transactional
-public class CompromissoControllerIntegracaoTest { 
+public class CompromissoControllerTestIT { 
 
     // configurações associadas a integracção com banco de dados
     @Container

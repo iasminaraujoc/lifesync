@@ -27,7 +27,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @Testcontainers
 @Transactional 
-class LoginControllerIntegracaoTest {
+class LoginControllerTestIT {
 
     @Container
     static MySQLContainer<?> mysqlContainer = new MySQLContainer<>("mysql:8.0")
