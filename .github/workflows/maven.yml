@@ -1,4 +1,4 @@
-name: CI/CD para Java (MySQL + Docker + Testcontainers)
+name: CI/CD para Java
 
 on:
   push:
@@ -7,12 +7,8 @@ on:
     branches: [main]
 
 jobs:
-  # ----------------------------------
-  # Testes no Ubuntu
-  # ----------------------------------
   test-linux:
     runs-on: ubuntu-latest
-    # Subimos MySQL como service (para os testes antigos).
     services:
       mysql:
         image: mysql:8.0
@@ -31,16 +27,6 @@ jobs:
       - name: Baixar código
         uses: actions/checkout@v4
 
-      # Embora o runner do Ubuntu geralmente já tenha Docker instalado,
-      # vamos usar a action oficial para garantir que ele esteja habilitado.
-      - name: Configure Docker Buildx
-        uses: docker/setup-buildx-action@v2
-        with:
-          install: true
-
-      - name: Verificar se Docker está ativo
-        run: docker version
-
       - name: Configurar JDK
         uses: actions/setup-java@v4
         with:
@@ -50,41 +36,32 @@ jobs:
       - name: Instalar dependências do MySQL
         run: sudo apt-get update && sudo apt-get install -y libmysqlclient-dev
 
-      - name: Aguardar MySQL (Ubuntu)
+      - name: Aguardar MySQL estar pronto
         run: |
           for i in {1..10}; do
             if mysql -h 127.0.0.1 -P 3306 -u root -proot -e "SELECT 1;" > /dev/null 2>&1; then
-              echo "MySQL está pronto (Ubuntu)!";
+              echo "MySQL está pronto!";
               break;
             fi
-            echo "Aguardando o MySQL (Ubuntu)...";
+            echo "Aguardando o MySQL...";
             sleep 5;
           done
 
-      - name: Executar testes (unitários + integração)
+      - name: Compilar e executar testes
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_NAME: lifesync
+          DB_USER: root
+          DB_PASS: root
         run: mvn clean verify
 
 
-  # ----------------------------------
-  # Testes no macOS
-  # ----------------------------------
   test-macos:
     runs-on: macos-latest
     steps:
       - name: Baixar código
         uses: actions/checkout@v4
-
-      # Instalar Docker no macOS
-      # Observação: na prática, Docker Desktop para macOS exige interface.
-      # Aqui usamos a action "setup-buildx" (que não garante 100%),
-      # mas às vezes é suficiente para Testcontainers funcionar em runner macOS.
-      - name: Configure Docker Buildx
-        uses: docker/setup-buildx-action@v2
-        with:
-          install: true
-
-      - name: Verificar se Docker está ativo
-        run: docker version || echo "Docker pode não estar completamente ativo no macOS"
 
       - name: Configurar JDK
         uses: actions/setup-java@v4
@@ -102,46 +79,35 @@ jobs:
           # Define a senha do root
           mysqladmin -u root password 'root'
 
-      - name: Aguardar MySQL (macOS)
+      - name: Aguardar MySQL estar pronto (macOS)
         run: |
           for i in {1..10}; do
             if mysql -u root -proot -e "SELECT 1;" > /dev/null 2>&1; then
-              echo "MySQL está pronto (macOS)!";
+              echo "MySQL está pronto!";
               break;
             fi
             echo "Aguardando o MySQL (macOS)...";
             sleep 5;
           done
 
-      - name: Criar Banco de Dados (macOS)
+      - name: Criar Banco de Dados
         run: mysql -u root -proot -e "CREATE DATABASE IF NOT EXISTS lifesync;"
 
-      - name: Executar testes (unitários + integração)
+      - name: Compilar e executar testes
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_NAME: lifesync
+          DB_USER: root
+          DB_PASS: root
         run: mvn clean verify
 
 
-  # ----------------------------------
-  # Testes no Windows
-  # ----------------------------------
   test-windows:
     runs-on: windows-latest
     steps:
       - name: Baixar código
         uses: actions/checkout@v4
-
-      # Instalar Docker CLI no Windows.
-      # O Docker Desktop em Windows runners é uma questão complexa,
-      # pois geralmente requer Hyper-V ou WSL2. Isto é um "melhor esforço".
-      - name: Instalar Docker CLI
-        run: |
-          choco install docker-cli --pre -y
-          choco install docker-desktop --pre -y
-        shell: powershell
-
-      - name: Verificar se Docker está ativo
-        shell: powershell
-        run: |
-          docker version || echo "Docker pode não estar completamente ativo no Windows"
 
       - name: Configurar JDK
         uses: actions/setup-java@v4
@@ -150,20 +116,19 @@ jobs:
           java-version: '21'
 
       - name: Instalar MySQL (Windows)
-        run: |
-          choco install mysql --params '"/port:3306 /serviceName:MySQL /password:root"' -y
-        shell: powershell
-
+        run: choco install mysql --params '"/port:3306 /serviceName:MySQL /password:root"' -y
+        
       - name: Definir senha root manualmente (Windows)
-        run: |
-          mysqladmin -u root password root
-        shell: bash
+        run: mysqladmin -u root password root
 
-      - name: Criar Banco de Dados (Windows)
-        run: |
-          mysql -u root -proot -e "CREATE DATABASE IF NOT EXISTS lifesync;"
-        shell: bash
+      - name: Criar Banco de Dados
+        run: mysql -u root -proot -e "CREATE DATABASE IF NOT EXISTS lifesync;"
 
-      - name: Executar testes (unitários + integração)
-        shell: bash
+      - name: Compilar e executar testes
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_NAME: lifesync
+          DB_USER: root
+          DB_PASS: root
         run: mvn clean verify
