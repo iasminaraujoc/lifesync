@@ -1,4 +1,4 @@
-name: CI/CD para Java com Testcontainers
+name: CI/CD para Java (MySQL + Docker + Testcontainers)
 
 on:
   push:
@@ -7,11 +7,39 @@ on:
     branches: [main]
 
 jobs:
+  # ----------------------------------
+  # Testes no Ubuntu
+  # ----------------------------------
   test-linux:
     runs-on: ubuntu-latest
+    # Subimos MySQL como service (para os testes antigos).
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: lifesync
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -u root -proot || exit 1"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+
     steps:
       - name: Baixar código
         uses: actions/checkout@v4
+
+      # Embora o runner do Ubuntu geralmente já tenha Docker instalado,
+      # vamos usar a action oficial para garantir que ele esteja habilitado.
+      - name: Configure Docker Buildx
+        uses: docker/setup-buildx-action@v2
+        with:
+          install: true
+
+      - name: Verificar se Docker está ativo
+        run: docker version
 
       - name: Configurar JDK
         uses: actions/setup-java@v4
@@ -19,65 +47,123 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
-      - name: Configurar Docker para Testcontainers
-        run: |
-          echo "Configurando Docker para permitir acesso do Testcontainers"
-          docker --version
-          sudo chmod 666 /var/run/docker.sock
+      - name: Instalar dependências do MySQL
+        run: sudo apt-get update && sudo apt-get install -y libmysqlclient-dev
 
-      - name: Configurar reuso de containers
+      - name: Aguardar MySQL (Ubuntu)
         run: |
-          echo "testcontainers.reuse.enable=true" > ~/.testcontainers.properties
+          for i in {1..10}; do
+            if mysql -h 127.0.0.1 -P 3306 -u root -proot -e "SELECT 1;" > /dev/null 2>&1; then
+              echo "MySQL está pronto (Ubuntu)!";
+              break;
+            fi
+            echo "Aguardando o MySQL (Ubuntu)...";
+            sleep 5;
+          done
 
-      - name: Compilar e executar testes
+      - name: Executar testes (unitários + integração)
         run: mvn clean verify
 
+
+  # ----------------------------------
+  # Testes no macOS
+  # ----------------------------------
   test-macos:
     runs-on: macos-latest
     steps:
       - name: Baixar código
         uses: actions/checkout@v4
 
+      # Instalar Docker no macOS
+      # Observação: na prática, Docker Desktop para macOS exige interface.
+      # Aqui usamos a action "setup-buildx" (que não garante 100%),
+      # mas às vezes é suficiente para Testcontainers funcionar em runner macOS.
+      - name: Configure Docker Buildx
+        uses: docker/setup-buildx-action@v2
+        with:
+          install: true
+
+      - name: Verificar se Docker está ativo
+        run: docker version || echo "Docker pode não estar completamente ativo no macOS"
+
       - name: Configurar JDK
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '21'
 
-      - name: Configurar Docker para Testcontainers
+      - name: Instalar e iniciar MySQL (macOS)
         run: |
-          echo "Configurando Docker para permitir acesso do Testcontainers"
-          docker --version
-          sudo chmod 666 /var/run/docker.sock
+          brew update
+          brew install mysql
+          brew services start mysql
+          # Espera alguns segundos para o servidor iniciar
+          sleep 10
+          # Define a senha do root
+          mysqladmin -u root password 'root'
 
-      - name: Configurar reuso de containers
+      - name: Aguardar MySQL (macOS)
         run: |
-          echo "testcontainers.reuse.enable=true" > ~/.testcontainers.properties
+          for i in {1..10}; do
+            if mysql -u root -proot -e "SELECT 1;" > /dev/null 2>&1; then
+              echo "MySQL está pronto (macOS)!";
+              break;
+            fi
+            echo "Aguardando o MySQL (macOS)...";
+            sleep 5;
+          done
 
-      - name: Compilar e executar testes
+      - name: Criar Banco de Dados (macOS)
+        run: mysql -u root -proot -e "CREATE DATABASE IF NOT EXISTS lifesync;"
+
+      - name: Executar testes (unitários + integração)
         run: mvn clean verify
 
+
+  # ----------------------------------
+  # Testes no Windows
+  # ----------------------------------
   test-windows:
     runs-on: windows-latest
     steps:
       - name: Baixar código
         uses: actions/checkout@v4
 
+      # Instalar Docker CLI no Windows.
+      # O Docker Desktop em Windows runners é uma questão complexa,
+      # pois geralmente requer Hyper-V ou WSL2. Isto é um "melhor esforço".
+      - name: Instalar Docker CLI
+        run: |
+          choco install docker-cli --pre -y
+          choco install docker-desktop --pre -y
+        shell: powershell
+
+      - name: Verificar se Docker está ativo
+        shell: powershell
+        run: |
+          docker version || echo "Docker pode não estar completamente ativo no Windows"
+
       - name: Configurar JDK
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '21'
 
-      - name: Instalar Docker no Windows
+      - name: Instalar MySQL (Windows)
         run: |
-          choco install docker-desktop -y
-          Start-Service Docker
-          docker --version
+          choco install mysql --params '"/port:3306 /serviceName:MySQL /password:root"' -y
+        shell: powershell
 
-      - name: Configurar reuso de containers
+      - name: Definir senha root manualmente (Windows)
         run: |
-          echo "testcontainers.reuse.enable=true" > $env:USERPROFILE/.testcontainers.properties
+          mysqladmin -u root password root
+        shell: bash
 
-      - name: Compilar e executar testes
+      - name: Criar Banco de Dados (Windows)
+        run: |
+          mysql -u root -proot -e "CREATE DATABASE IF NOT EXISTS lifesync;"
+        shell: bash
+
+      - name: Executar testes (unitários + integração)
+        shell: bash
         run: mvn clean verify
