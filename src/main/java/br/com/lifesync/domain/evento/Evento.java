@@ -68,6 +68,10 @@ public class Evento extends Compromisso {
         return hora;
     }
 
+    public void setLocal(String local) {
+        this.local = local;
+    }
+
     public String getLocal() {
         return local;
     }
