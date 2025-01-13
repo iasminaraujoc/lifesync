@@ -33,3 +33,16 @@ O LifeSync oferece um conjunto robusto de funcionalidades que atendem às necess
 Optamos por usar Java no backend devido à robustez e escalabilidade da linguagem, além de seu ecossistema maduro, com diversas bibliotecas e frameworks que facilitam o desenvolvimento de sistemas de grande porte. Spring Boot foi escolhido como framework para o backend por sua capacidade de acelerar o desenvolvimento, com uma configuração mínima e integração simplificada com bancos de dados, além de ser uma ferramenta amplamente utilizada em projetos corporativos.
 
 A escolha do MySQL como banco de dados relaciona-se à sua confiabilidade, alta performance e à ampla aceitação no mercado. Ele é utilizado para armazenar dados de usuários, tarefas, eventos e outras informações essenciais para o funcionamento do sistema. Além disso, o MySQL oferece alta compatibilidade com as tecnologias utilizadas, garantindo uma integração suave entre o backend e o banco de dados.
+
+Atualmente, nosso sistema em funcionamento inclui apenas o backend. Por isso, não trabalhamos com nenhuma interface visual. Por isso, para executar o sistema, utilizamos o Postman para visualizar as requisições. A ideia é expandir o projeto, adicionando um projeto frontend que consuma a API que criamos.
+
+### Execução da aplicação
+Para executar o projeto, é necessário ter instalado o Java (versão 21 ou superior), o Maven e o MySQL. Feito isso, basta executar o comando:
+
+```
+mvn spring-boot:run
+```
+Ele iniciará a aplicação na rota `localhost:8080`, e será possível navegar pelas rotas da API.
+
+Para executar todos os testes de integração, também é necessário ter o Docker instalado, devido ao uso da biblioteca Testcontainers. 
+
